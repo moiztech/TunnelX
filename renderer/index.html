@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src * ws: wss:; img-src 'self' data:;"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TunnelX</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <div class="brand">
+          <img
+            class="logo-img"
+            src="assets/logo.png"
+            width="72"
+            height="72"
+            alt=""
+          />
+          <div class="brand-text">
+            <h1>TunnelX</h1>
+            <p class="byline">by E11 Labs</p>
+            <p class="subtitle">Play together like you’re on the same Wi‑Fi</p>
+          </div>
+        </div>
+      </header>
+
+      <nav class="mode-switch" role="tablist" aria-label="Connection mode">
+        <button type="button" class="mode-btn active" id="modeHost" role="tab" aria-selected="true">
+          Host
+        </button>
+        <button type="button" class="mode-btn" id="modeJoin" role="tab" aria-selected="false">
+          Join
+        </button>
+      </nav>
+
+      <section class="card">
+        <label class="field-label" for="displayName">Your name</label>
+        <input
+          id="displayName"
+          type="text"
+          maxlength="24"
+          placeholder="Your name"
+          autocomplete="nickname"
+        />
+
+        <div id="joinOnlyFields" class="join-only hidden">
+          <label class="field-label" for="hostAddress">Friend’s PC address</label>
+          <input
+            id="hostAddress"
+            type="text"
+            spellcheck="false"
+            placeholder="e.g. 192.168.1.20"
+            autocomplete="off"
+          />
+          <p class="hint">Same network: use their local IP. Online: use their public IP or hostname.</p>
+        </div>
+
+        <label class="field-label" for="roomId">Room name</label>
+        <input
+          id="roomId"
+          type="text"
+          maxlength="48"
+          placeholder="e.g. friday-race"
+          spellcheck="false"
+          autocomplete="off"
+        />
+
+        <div class="actions">
+          <button type="button" id="btnPrimary" class="btn btn-primary">
+            Host lobby
+          </button>
+          <button type="button" id="btnLeave" class="btn btn-ghost" disabled>
+            Leave
+          </button>
+        </div>
+      </section>
+
+      <section class="card status-card">
+        <div class="status-row">
+          <span class="status-pill" id="statusPill">
+            <span class="dot" id="statusDot"></span>
+            <span id="connState">Not connected</span>
+          </span>
+          <div class="ping-wrap">
+            <span class="ping-label">Ping</span>
+            <span id="pingMs" class="ping-value">—</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Players</h2>
+        <ul id="memberList" class="player-list"></ul>
+        <p id="playersEmpty" class="empty-hint">Nobody else yet. Share your room name with friends.</p>
+      </section>
+
+      <section class="card guide">
+        <h2 class="card-title">Quick start</h2>
+        <ol class="steps">
+          <li>
+            <span class="step-num">1</span>
+            <div>
+              <strong>Host or join</strong>
+              <p>Host creates the lobby on this PC. Joiners enter the host’s address.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            <div>
+              <strong>Open your game</strong>
+              <p>Start the title and choose LAN or local network multiplayer.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            <div>
+              <strong>Play</strong>
+              <p>Lobbies should list everyone in the same room. Have fun.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <footer class="footer">
+        <span id="appVersion" class="version"></span>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="app.js"></script>
+  </body>
+</html>

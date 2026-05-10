@@ -1,0 +1,79 @@
+{
+  "name": "tunnelx",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TunnelX by E11 Labs — virtual LAN for classic multiplayer games",
+  "main": "electron/main.js",
+  "author": "E11 Labs",
+  "scripts": {
+    "server": "node server/index.js",
+    "client": "electron .",
+    "start": "node server/index.js",
+    "rebuild:native": "electron-rebuild -f -w @xiaobaidadada/node-tuntap2-wintun",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --win dir"
+  },
+  "dependencies": {
+    "@xiaobaidadada/node-tuntap2-wintun": "^3.0.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9"
+  },
+  "build": {
+    "appId": "com.e11labs.tunnelx",
+    "productName": "TunnelX",
+    "copyright": "Copyright © E11 Labs",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "**/*",
+      "!dist${/*}",
+      "!**/*.md",
+      "!.git${/*}",
+      "!node_modules/@xiaobaidadada${/*}",
+      "!TunnelX by e11 labs.ico",
+      "!TunnelX by e11 labs.png",
+      "!LANBridge.pdf"
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "win": {
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TunnelX",
+      "installerLanguages": [
+        "en_US"
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    }
+  }
+}
