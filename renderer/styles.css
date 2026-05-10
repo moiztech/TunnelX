@@ -13,9 +13,156 @@ body {
 }
 
 .app {
-  max-width: 400px;
+  max-width: 440px;
   margin: 0 auto;
   padding: 20px 18px 28px;
+}
+
+.card.hidden,
+.hidden {
+  display: none !important;
+}
+
+.session-card {
+  border-color: rgba(45, 212, 191, 0.22);
+  background: linear-gradient(165deg, #12161d 0%, #101820 100%);
+}
+
+.session-hint {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.info-block {
+  margin-bottom: 14px;
+}
+
+.info-block:last-of-type {
+  margin-bottom: 0;
+}
+
+.info-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.info-value {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  word-break: break-all;
+}
+
+.info-value.mono {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92rem;
+}
+
+.info-value-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.info-value-row .info-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-copy {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(45, 212, 191, 0.45);
+  background: rgba(13, 148, 136, 0.25);
+  color: #5eead4;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-copy:hover:not(:disabled) {
+  background: rgba(13, 148, 136, 0.4);
+}
+
+.btn-copy:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mini-hint {
+  margin: 8px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #6b7280;
+}
+
+.mini-hint strong {
+  color: #9ca3af;
+}
+
+.tunnel-ok {
+  color: #5eead4 !important;
+}
+
+.tunnel-warn {
+  color: #fcd34d !important;
+}
+
+.tunnel-bad {
+  color: #fca5a5 !important;
+}
+
+.callout {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(14, 116, 144, 0.18);
+  margin-bottom: 14px;
+}
+
+.callout strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #7dd3fc;
+  margin-bottom: 6px;
+}
+
+.callout p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #b8c3d4;
+}
+
+.callout em {
+  color: #e2e8f0;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.mono-inline {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.88em;
+  color: #7dd3fc;
+}
+
+.peer-count-line {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5eead4;
 }
 
 .hero {

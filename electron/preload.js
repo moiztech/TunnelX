@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("lanbridge", {
   platform: process.platform,
   appVersion: () => ipcRenderer.invoke("lb-app-version"),
+  getHostNetworkInfo: () => ipcRenderer.invoke("lb-host-network-info"),
 });
 
 contextBridge.exposeInMainWorld("lanbridgeHost", {

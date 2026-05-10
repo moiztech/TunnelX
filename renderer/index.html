@@ -24,17 +24,17 @@
           <div class="brand-text">
             <h1>TunnelX</h1>
             <p class="byline">by E11 Labs</p>
-            <p class="subtitle">Play together like you’re on the same Wi‑Fi</p>
+            <p class="subtitle">Play together like you’re on the same Wi‑Fi — no networking degree required.</p>
           </div>
         </div>
       </header>
 
       <nav class="mode-switch" role="tablist" aria-label="Connection mode">
         <button type="button" class="mode-btn active" id="modeHost" role="tab" aria-selected="true">
-          Host
+          I’m hosting
         </button>
         <button type="button" class="mode-btn" id="modeJoin" role="tab" aria-selected="false">
-          Join
+          I’m joining
         </button>
       </nav>
 
@@ -44,20 +44,27 @@
           id="displayName"
           type="text"
           maxlength="24"
-          placeholder="Your name"
+          placeholder="e.g. Alex"
           autocomplete="nickname"
         />
 
         <div id="joinOnlyFields" class="join-only hidden">
-          <label class="field-label" for="hostAddress">Friend’s PC address</label>
+          <div class="callout callout-join">
+            <strong>Joining a friend?</strong>
+            <p>
+              Enter the <em>Host address</em> your friend copied from TunnelX (a
+              number like <span class="mono-inline">192.168.1.20</span>). They
+              tap <strong>Copy invite</strong> on their PC to send it to you.
+            </p>
+          </div>
+          <label class="field-label" for="hostAddress">Host address</label>
           <input
             id="hostAddress"
             type="text"
             spellcheck="false"
-            placeholder="e.g. 192.168.1.20"
+            placeholder="Paste or type what your friend sent you"
             autocomplete="off"
           />
-          <p class="hint">Same network: use their local IP. Online: use their public IP or hostname.</p>
         </div>
 
         <label class="field-label" for="roomId">Room name</label>
@@ -69,10 +76,18 @@
           spellcheck="false"
           autocomplete="off"
         />
+        <p id="roomHintHost" class="hint">
+          Pick a simple name everyone will use. You’ll share it with friends
+          after you start hosting.
+        </p>
+        <p id="roomHintJoin" class="hint hidden">
+          Use the <strong>exact same room name</strong> your friend chose when
+          they hosted.
+        </p>
 
         <div class="actions">
           <button type="button" id="btnPrimary" class="btn btn-primary">
-            Host lobby
+            Start hosting
           </button>
           <button type="button" id="btnLeave" class="btn btn-ghost" disabled>
             Leave
@@ -80,7 +95,51 @@
         </div>
       </section>
 
+      <section id="sessionCard" class="card session-card hidden">
+        <h2 class="card-title">Your lobby details</h2>
+        <p id="sessionRoleHint" class="session-hint"></p>
+
+        <div class="info-block">
+          <span class="info-label">Host address</span>
+          <div class="info-value-row">
+            <span id="displayHostAddress" class="info-value mono">—</span>
+            <button type="button" id="btnCopyInvite" class="btn-copy">
+              Copy invite
+            </button>
+          </div>
+          <p id="hostShareExplain" class="mini-hint hidden">
+            <strong>What to share:</strong> this address and your room name (below).
+            Your friend selects <em>I’m joining</em>, pastes the address here, and
+            types the same room name.
+          </p>
+          <p id="joinerHostExplain" class="mini-hint hidden">
+            This is the host address you used to connect. It should match what
+            your friend sent you.
+          </p>
+        </div>
+
+        <div class="info-block">
+          <span class="info-label">Room name</span>
+          <span id="displayRoomName" class="info-value">—</span>
+        </div>
+
+        <div class="info-block">
+          <span class="info-label">Your virtual IP</span>
+          <span id="displayVirtualIp" class="info-value mono">—</span>
+          <p class="mini-hint">
+            Some older games show this as your “LAN” or local address in
+            multiplayer — you usually don’t need to type it anywhere.
+          </p>
+        </div>
+
+        <div class="info-block">
+          <span class="info-label">Tunnel status</span>
+          <span id="displayTunnelStatus" class="info-value tunnel-ok">—</span>
+        </div>
+      </section>
+
       <section class="card status-card">
+        <h2 class="card-title">Connection status</h2>
         <div class="status-row">
           <span class="status-pill" id="statusPill">
             <span class="dot" id="statusDot"></span>
@@ -94,33 +153,48 @@
       </section>
 
       <section class="card">
-        <h2 class="card-title">Players</h2>
+        <h2 class="card-title">Connected peers</h2>
+        <p id="peerCountLine" class="peer-count-line hidden"></p>
         <ul id="memberList" class="player-list"></ul>
-        <p id="playersEmpty" class="empty-hint">Nobody else yet. Share your room name with friends.</p>
+        <p id="playersEmpty" class="empty-hint">
+          Nobody else is here yet. When you’re hosting, send your invite so
+          friends can join.
+        </p>
       </section>
 
       <section class="card guide">
-        <h2 class="card-title">Quick start</h2>
+        <h2 class="card-title">How it works</h2>
         <ol class="steps">
           <li>
             <span class="step-num">1</span>
             <div>
-              <strong>Host or join</strong>
-              <p>Host creates the lobby on this PC. Joiners enter the host’s address.</p>
+              <strong>Host starts a room</strong>
+              <p>
+                One person taps <em>I’m hosting</em>, picks a room name, and
+                starts. TunnelX shows their <strong>Host address</strong> and a
+                <strong>Copy invite</strong> button.
+              </p>
             </div>
           </li>
           <li>
             <span class="step-num">2</span>
             <div>
-              <strong>Open your game</strong>
-              <p>Start the title and choose LAN or local network multiplayer.</p>
+              <strong>Share the invite</strong>
+              <p>
+                The host sends the copied message (or tells friends the address
+                + room name). No ports or firewalls to configure for this step.
+              </p>
             </div>
           </li>
           <li>
             <span class="step-num">3</span>
             <div>
-              <strong>Play</strong>
-              <p>Lobbies should list everyone in the same room. Have fun.</p>
+              <strong>Friends join, then everyone opens the game</strong>
+              <p>
+                Joiners choose <em>I’m joining</em>, paste the host address, use
+                the same room name, then open the game and pick <strong>LAN /
+                local network</strong> multiplayer.
+              </p>
             </div>
           </li>
         </ol>

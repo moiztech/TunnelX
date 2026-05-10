@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const dgram = require("dgram");
 const relay = require(path.join(__dirname, "..", "lib", "relay.js"));
+const { getHostNetworkInfo } = require(path.join(__dirname, "host-network.js"));
 
 /** @type {BrowserWindow | null} */
 let mainWindow = null;
@@ -196,12 +197,14 @@ ipcMain.handle("lb-session-stop", async () => {
 
 ipcMain.handle("lb-app-version", () => app.getVersion());
 
+ipcMain.handle("lb-host-network-info", () => getHostNetworkInfo());
+
 function createWindow() {
   const win = new BrowserWindow({
-    width: 420,
-    height: 720,
-    minWidth: 360,
-    minHeight: 600,
+    width: 440,
+    height: 820,
+    minWidth: 380,
+    minHeight: 640,
     title: "TunnelX",
     backgroundColor: "#0c0e12",
     webPreferences: {
