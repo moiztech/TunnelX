@@ -156,17 +156,16 @@ function startLanBridgeServer(options = {}) {
         return;
       }
       const action = data.action;
-      const roomName = typeof data.room === "string" ? data.room.trim() : "";
       const displayName =
         typeof data.name === "string" ? data.name.trim() || "Player" : "Player";
 
-      if (!roomName || roomName.length > 64) {
-        ws.send(JSON.stringify({ type: "error", message: "Invalid room name" }));
-        return;
-      }
-
       if (action === "create") {
         if (ctx) return;
+        const roomName = typeof data.room === "string" ? data.room.trim() : "";
+        if (!roomName || roomName.length > 64) {
+          ws.send(JSON.stringify({ type: "error", message: "Invalid room name" }));
+          return;
+        }
         if (roomsByName.has(roomName)) {
           ws.send(
             JSON.stringify({
@@ -219,6 +218,11 @@ function startLanBridgeServer(options = {}) {
 
       if (action === "join") {
         if (ctx) return;
+        const roomName = typeof data.room === "string" ? data.room.trim() : "";
+        if (!roomName || roomName.length > 64) {
+          ws.send(JSON.stringify({ type: "error", message: "Invalid room name" }));
+          return;
+        }
         const room = roomsByName.get(roomName);
         if (!room) {
           ws.send(
