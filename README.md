@@ -18,6 +18,21 @@ npm install
 npm run dist
 ```
 
+**No Visual Studio required.** The WinTun driver uses a **prebuilt** binary (`prebuild-install`).
+
+Run all commands from the **project root** (`LANBrige`), **not** from the `dist` folder.
+
+`npm audit` may still list issues inside `electron-builder`; those are **dev build tools only** — they are not bundled into the portable `.exe` you send to friends. **Do not run `npm audit fix --force`** (it breaks the project).
+
+If `npm run dist` complains about rebuilding native code, ensure `package.json` has `"npmRebuild": false` and run:
+
+```bash
+cd node_modules\@xiaobaidadada\node-tuntap2-wintun
+npm run install
+cd ..\..\..
+npm run dist
+```
+
 Outputs in **`dist/`**:
 
 | File | Purpose |
@@ -50,8 +65,19 @@ Environment variables (optional): `LANBRIDGE_HTTP_PORT`, `LANBRIDGE_UDP_PORT`, `
 
 ## How it works
 
-- **Public relay server:** Host and Join both connect to the relay server on **8787** / **17777** so friends on different networks can meet in the same room.
-- **Virtual adapter (WinTun):** Optional in **non-packaged** dev builds on Windows; the shipped `.exe` focuses on relay and UX first.
+- **Lobby (relay):** Host and Join connect to the relay on **8787** (WebSocket) and **17777** (UDP). Everyone in the same room name appears in TunnelX’s player list.
+- **In-game LAN (WinTun):** Classic games (e.g. Stronghold) only see other players when the **TunnelX** virtual network adapter is running. That adapter needs **Administrator** rights on Windows. You do **not** need Visual Studio if `npm install` already downloaded the prebuilt WinTun addon (default).
+
+### Stronghold / LAN games not discovering each other?
+
+1. In TunnelX, after joining, check **Tunnel status**. It must say **LAN adapter running**. If it says the adapter is off, run TunnelX **as Administrator** and re-join the room.
+2. **Every** player needs the adapter running (same room name, same relay server).
+3. Open the game only **after** TunnelX shows you in the lobby with the adapter running.
+4. In the game, use **LAN / local network** (not internet / GameSpy).
+5. Allow TunnelX through Windows Firewall (private networks).
+6. From source: `npm run client` — start your terminal **as Administrator** so WinTun can create the adapter.
+
+To disable the adapter (lobby-only testing): set `LANBRIDGE_TUN=0` before starting the app.
 
 ## Protocol
 

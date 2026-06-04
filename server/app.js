@@ -9,7 +9,8 @@ const relay = require(path.join(__dirname, "..", "lib", "relay.js"));
 
 const DEFAULT_HTTP = 8787;
 const DEFAULT_UDP = 17777;
-const BASE_VIRTUAL = [10, 10, 0, 0];
+/** Virtual LAN subnet per LANBridge spec (10.0.0.0/24). */
+const BASE_VIRTUAL = [10, 0, 0, 0];
 
 function virtualIpFromIndex(i) {
   const o = BASE_VIRTUAL.slice();

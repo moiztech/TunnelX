@@ -13,18 +13,37 @@ function writeFrame(sock, type, body) {
   sock.write(Buffer.concat([h, body]));
 }
 
-function findNodePath() {
-  if (process.env.LANBRIDGE_NODE) return process.env.LANBRIDGE_NODE;
-  if (process.resourcesPath) {
-    const bundledNode = path.join(process.resourcesPath, "node", "node.exe");
-    if (fs.existsSync(bundledNode)) return bundledNode;
+/** Use real Node.exe — never Electron (native WinTun crashes Electron). */
+function findRunnerPath() {
+  if (process.env.LANBRIDGE_NODE && fs.existsSync(process.env.LANBRIDGE_NODE)) {
+    return process.env.LANBRIDGE_NODE;
   }
+
+  const candidates = [];
+  if (process.resourcesPath) {
+    candidates.push(path.join(process.resourcesPath, "node", "node.exe"));
+  }
+  candidates.push(path.join(__dirname, "..", "vendor", "node", "node.exe"));
+
   try {
     const out = execSync("where.exe node", { encoding: "utf8" });
     const line = out.split(/\r?\n/).find((l) => l.trim().length > 0);
-    if (line) return line.trim();
+    if (line) candidates.push(line.trim());
   } catch (_) {}
+
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+
   return "node";
+}
+
+function workerCwd() {
+  if (process.resourcesPath) {
+    const unpacked = path.join(process.resourcesPath, "app.asar.unpacked");
+    if (fs.existsSync(unpacked)) return unpacked;
+  }
+  return path.join(__dirname, "..");
 }
 
 function unpackedPath(filePath) {
@@ -37,10 +56,15 @@ function unpackedPath(filePath) {
 function startTunBridge(opts) {
   return new Promise((resolve, reject) => {
     let settled = false;
-    /** @type {import('child_process').ChildProcess | null} */
+    /** @type {import("child_process").ChildProcess | null} */
     let childRef = null;
     const server = net.createServer();
     const serviceJs = unpackedPath(path.join(__dirname, "tun-service.js"));
+
+    if (!fs.existsSync(serviceJs)) {
+      reject(new Error(`tun-service.js not found: ${serviceJs}`));
+      return;
+    }
 
     const fail = (err) => {
       if (settled) return;
@@ -56,18 +80,29 @@ function startTunBridge(opts) {
     };
 
     const timer = setTimeout(() => {
-      fail(new Error("tun-service connection timed out (is Node.js on PATH?)"));
-    }, 20000);
+      fail(
+        new Error(
+          "LAN worker timed out. Run TunnelX as Administrator and rebuild the app."
+        )
+      );
+    }, 30000);
 
     server.listen(0, "127.0.0.1", () => {
-      const cport = /** @type {import('net').AddressInfo} */ (
-        server.address()
-      ).port;
+      const cport = /** @type {import("net").AddressInfo} */ (server.address()).port;
+      const runnerPath = findRunnerPath();
 
-      const nodePath = findNodePath();
-      const env = Object.assign({}, process.env);
-      const child = spawn(nodePath, [serviceJs, String(cport)], {
-        env,
+      if (!fs.existsSync(runnerPath)) {
+        fail(
+          new Error(
+            "Node.js worker not found. Rebuild TunnelX (npm run dist) so vendor/node is bundled."
+          )
+        );
+        return;
+      }
+
+      const child = spawn(runnerPath, [serviceJs, String(cport)], {
+        cwd: workerCwd(),
+        env: { ...process.env },
         stdio: ["ignore", "ignore", "pipe"],
         windowsHide: true,
       });
@@ -84,7 +119,7 @@ function startTunBridge(opts) {
         if (!settled) {
           fail(
             new Error(
-              `tun-service exited (${code}). ${stderr.trim() || "Ensure Node.js is on PATH (or set LANBRIDGE_NODE)."}`
+              `LAN worker exited (${code}). ${stderr.trim() || "Run as Administrator."}`
             )
           );
         }
@@ -127,7 +162,13 @@ function startTunBridge(opts) {
             }
 
             if (t === 2) {
-              opts.onPacket(body);
+              setImmediate(() => {
+                try {
+                  opts.onPacket(body);
+                } catch (e) {
+                  console.error("onPacket:", e);
+                }
+              });
             }
           }
         });
@@ -155,10 +196,6 @@ function startTunBridge(opts) {
   });
 }
 
-/**
- * @param {import('net').Socket} sock
- * @param {import('child_process').ChildProcess} child
- */
 function makeApi(sock, child) {
   return {
     send: (packet) => writeFrame(sock, 1, packet),
@@ -180,4 +217,4 @@ function makeApi(sock, child) {
   };
 }
 
-module.exports = { startTunBridge, findNodePath };
+module.exports = { startTunBridge, findRunnerPath };

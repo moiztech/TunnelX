@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("lanbridge", {
   platform: process.platform,
   appVersion: () => ipcRenderer.invoke("lb-app-version"),
   getHostNetworkInfo: () => ipcRenderer.invoke("lb-host-network-info"),
+  tunPreflight: () => ipcRenderer.invoke("lb-tun-preflight"),
 });
 
 contextBridge.exposeInMainWorld("lanbridgeHost", {

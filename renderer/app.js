@@ -40,6 +40,8 @@ const DEFAULT_RELAY_HOST = "98.70.25.166";
 const DEFAULT_RELAY_WS = `ws://${DEFAULT_RELAY_HOST}:8787/ws`;
 
 const state = {
+  connecting: false,
+  applyingWelcome: false,
   mode: "host",
   wsUrl: "",
   ws: null,
@@ -199,6 +201,8 @@ function hideSessionCard() {
 }
 
 function resetUiDisconnected() {
+  state.connecting = false;
+  state.applyingWelcome = false;
   els.btnLeave.disabled = true;
   els.btnPrimary.disabled = false;
   els.modeHost.disabled = false;
@@ -246,6 +250,12 @@ function renderMembers(members, selfId) {
       badge.textContent = "You";
       li.appendChild(badge);
     }
+    if (m.hasUdp === false) {
+      const wait = document.createElement("span");
+      wait.className = "you-badge";
+      wait.textContent = "no LAN tunnel";
+      li.appendChild(wait);
+    }
     els.memberList.appendChild(li);
   }
 }
@@ -276,8 +286,28 @@ async function copyInvite() {
   }
 }
 
+async function runTunPreflight() {
+  if (!window.lanbridge || !window.lanbridge.tunPreflight) {
+    return { ok: true, message: "" };
+  }
+  try {
+    return await window.lanbridge.tunPreflight();
+  } catch (e) {
+    return {
+      ok: false,
+      message: e && e.message ? e.message : String(e),
+    };
+  }
+}
+
 async function startBridgeSession(data) {
-  if (!window.lanbridgeSession) return { ok: false, tun: false };
+  if (!window.lanbridgeSession) {
+    return {
+      ok: false,
+      tun: false,
+      tunError: "TunnelX session bridge not loaded (preload missing). Reinstall the app.",
+    };
+  }
   try {
     return await window.lanbridgeSession.start({
       relayPort: data.relayUdpPort,
@@ -304,6 +334,9 @@ async function stopBridgeSession() {
 }
 
 async function applyWelcome(data) {
+  if (state.applyingWelcome) return;
+  state.applyingWelcome = true;
+  try {
   state.peerId = data.peerId;
   state.roomId = data.roomId;
   state.relayPort = data.relayUdpPort;
@@ -372,13 +405,22 @@ async function applyWelcome(data) {
   setStatus("In lobby — all good", "ok");
   const bridge = await startBridgeSession(data);
   if (bridge && bridge.tun) {
-    setTunnelStatus("LAN adapter running", "tunnel-ok");
+    setTunnelStatus("LAN adapter running — open the game’s LAN multiplayer", "tunnel-ok");
   } else {
-    setTunnelStatus("Lobby connected, LAN adapter not running", "tunnel-bad");
+    const detail =
+      bridge && bridge.tunError
+        ? bridge.tunError
+        : "WinTun did not start (unknown reason)";
+    setTunnelStatus(`LAN adapter off: ${detail}`, "tunnel-bad");
     toast(
-      "Lobby is connected, but the LAN adapter did not start. Run TunnelX as Administrator and make sure WinTun is packaged.",
+      `${detail} Leave the room, run TunnelX as Administrator, then join again.`,
       "error"
     );
+  }
+  } finally {
+    state.applyingWelcome = false;
+    state.connecting = false;
+    els.btnPrimary.disabled = true;
   }
 }
 
@@ -445,6 +487,7 @@ function connect(mode, room, name, wsUrl) {
       try {
         ws.close();
       } catch (_) {}
+      state.connecting = false;
       resetUiDisconnected();
       return;
     }
@@ -465,20 +508,22 @@ function connect(mode, room, name, wsUrl) {
 
   ws.onclose = () => {
     stopPing();
-    stopBridgeSession();
     state.ws = null;
     if (state.intentionalClose) {
+      stopBridgeSession();
       setStatus("Left lobby", "");
       setTunnelStatus("Left the lobby", "");
       resetUiDisconnected();
       return;
     }
-    setStatus("Connection lost", "bad");
-    setTunnelStatus("Connection lost", "tunnel-bad");
+    setStatus("Connection lost — reconnecting lobby…", "warn");
+    setTunnelStatus("Lobby reconnecting (LAN adapter stays on)…", "tunnel-warn");
     scheduleReconnect();
   };
 
   ws.onerror = () => {
+    state.connecting = false;
+    els.btnPrimary.disabled = false;
     setStatus("No connection", "bad");
     setTunnelStatus("Couldn’t reach the host", "tunnel-bad");
   };
@@ -498,37 +543,26 @@ els.btnPrimary.addEventListener("click", async () => {
     toast("Choose a room name first — keep it simple, like “friday-race”.", "error");
     return;
   }
+
+  const pre = await runTunPreflight();
+  if (!pre.ok) {
+    setTunnelStatus(`Cannot start LAN: ${pre.message}`, "tunnel-bad");
+    toast(pre.message, "error");
+    return;
+  }
+
   savePrefs();
   clearReconnectTimer();
+
+  if (state.connecting) return;
+  state.connecting = true;
+  els.btnPrimary.disabled = true;
 
   if (state.mode === "host") {
     const cloudWsUrl = DEFAULT_RELAY_WS;
     state.joinHostAddressRaw = DEFAULT_RELAY_HOST;
     state.lastSession = { mode: "create", room, name, attempts: 0, wsUrl: cloudWsUrl };
     connect("create", room, name, cloudWsUrl);
-    return;
-
-    if (window.lanbridgeHost) {
-      const r = await window.lanbridgeHost.ensureServer();
-      if (!r.ok) {
-        toast(
-          r.message ||
-            "TunnelX couldn’t start the lobby on this PC. Another app may be using the same connection ports.",
-          "error"
-        );
-        return;
-      }
-      if (r.note === "in_use") {
-        toast(
-          "Another TunnelX (or server) is already using this PC’s lobby ports — that’s OK, you can still host.",
-          "info"
-        );
-      }
-    }
-    const wsUrl = "ws://127.0.0.1:8787/ws";
-    state.joinHostAddressRaw = "";
-    state.lastSession = { mode: "create", room, name, attempts: 0, wsUrl };
-    connect("create", room, name, wsUrl);
   } else {
     const hostAddr = els.hostAddress.value.trim() || DEFAULT_RELAY_HOST;
     els.hostAddress.value = hostAddr;
@@ -570,6 +604,16 @@ els.btnLeave.addEventListener("click", () => {
 });
 
 loadPrefs();
+
+void (async () => {
+  const pre = await runTunPreflight();
+  if (!pre.ok) {
+    setTunnelStatus(`Before you play: ${pre.message}`, "tunnel-bad");
+    toast(pre.message, "error");
+  } else if (pre.message) {
+    setTunnelStatus(pre.message, "tunnel-ok");
+  }
+})();
 
 if (window.lanbridge && window.lanbridge.appVersion) {
   window.lanbridge.appVersion().then((v) => {

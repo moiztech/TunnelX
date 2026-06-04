@@ -9,18 +9,19 @@
     "server": "node server/index.js",
     "client": "electron .",
     "start": "node server/index.js",
-    "rebuild:native": "electron-rebuild -f -w @xiaobaidadada/node-tuntap2-wintun",
+    "rebuild:native": "cd node_modules/@xiaobaidadada/node-tuntap2-wintun && npm run install",
+    "postinstall": "node scripts/ensure-wintun-prebuild.js",
     "dist": "electron-builder --win",
     "dist:dir": "electron-builder --win dir"
   },
   "dependencies": {
     "@xiaobaidadada/node-tuntap2-wintun": "^3.0.2",
+    "jmespath": "^0.16.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
-    "electron-rebuild": "^3.2.9"
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1"
   },
   "build": {
     "appId": "com.e11labs.tunnelx",
@@ -39,9 +40,19 @@
       "!TunnelX by e11 labs.png",
       "!LANBridge.pdf"
     ],
+    "extraResources": [
+      {
+        "from": "vendor/node",
+        "to": "node",
+        "filter": ["**/*"]
+      }
+    ],
     "asarUnpack": [
-      "electron/tun-service.js",
-      "node_modules/@xiaobaidadada/node-tuntap2-wintun/**/*"
+      "electron/**/*",
+      "native/**/*",
+      "node_modules/@xiaobaidadada/node-tuntap2-wintun/**/*",
+      "node_modules/jmespath/**/*",
+      "**/*.node"
     ],
     "asar": true,
     "npmRebuild": false,

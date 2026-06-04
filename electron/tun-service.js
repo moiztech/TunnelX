@@ -1,12 +1,27 @@
 "use strict";
 
 /**
- * WinTun sidecar: run with system Node (`node tun-service.js <parentPort>`).
- * Speaks framed messages over TCP to Electron main (see tun-bridge.js).
+ * WinTun worker (separate Node process). Crashes here do not close the Electron UI.
  */
 
 const net = require("net");
-const { Wintun } = require("@xiaobaidadada/node-tuntap2-wintun");
+const { getNativeNodePath, getWintunDllPath } = require("./wintun-paths.js");
+
+const WINTUN_OK = 1;
+
+/** @type {any} */
+let Wintun = null;
+
+function getWintun() {
+  if (!Wintun) {
+    Wintun = require(getNativeNodePath());
+    if (!Wintun || typeof Wintun.init !== "function") {
+      throw new Error("Invalid WinTun native addon");
+    }
+    Wintun.get_wintun_dll_path = () => getWintunDllPath();
+  }
+  return Wintun;
+}
 
 const parentPort = parseInt(process.argv[2], 10);
 if (!parentPort || Number.isNaN(parentPort)) {
@@ -29,7 +44,7 @@ let started = false;
 sock.on("error", (err) => {
   console.error("tun-service socket:", err.message);
   try {
-    Wintun.close();
+    if (Wintun) Wintun.close();
   } catch (_) {}
   process.exit(1);
 });
@@ -61,7 +76,7 @@ sock.on("data", (chunk) => {
       }
       if (j.cmd === "stop") {
         try {
-          Wintun.close();
+          if (Wintun) Wintun.close();
         } catch (_) {}
         try {
           sock.end();
@@ -71,16 +86,18 @@ sock.on("data", (chunk) => {
       }
       if (j.cmd === "start" && !started) {
         try {
-          const dll = Wintun.get_wintun_dll_path();
-          Wintun.set_dll_path(dll);
-          const ir = Wintun.init();
-          if (ir !== 0) throw new Error(`Wintun.init failed (${ir})`);
+          const Wintun = getWintun();
+          Wintun.set_dll_path(getWintunDllPath());
+          try {
+            Wintun.close();
+          } catch (_) {}
+          Wintun.init();
           const sr = Wintun.set_ipv4(
             j.adapterName || "TunnelX",
             j.ip,
             j.prefix || 24
           );
-          if (sr !== 0) {
+          if (sr !== WINTUN_OK) {
             throw new Error(
               `Wintun.set_ipv4 failed (${sr}). Run TunnelX as Administrator.`
             );
@@ -107,7 +124,7 @@ sock.on("data", (chunk) => {
 
     if (t === 1 && started) {
       try {
-        Wintun.send_data(body);
+        getWintun().send_data(body);
       } catch (_) {}
     }
   }
