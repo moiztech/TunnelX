@@ -3,6 +3,7 @@
 const { spawn } = require("child_process");
 const net = require("net");
 const path = require("path");
+const fs = require("fs");
 const { execSync } = require("child_process");
 
 function writeFrame(sock, type, body) {
@@ -14,12 +15,20 @@ function writeFrame(sock, type, body) {
 
 function findNodePath() {
   if (process.env.LANBRIDGE_NODE) return process.env.LANBRIDGE_NODE;
+  if (process.resourcesPath) {
+    const bundledNode = path.join(process.resourcesPath, "node", "node.exe");
+    if (fs.existsSync(bundledNode)) return bundledNode;
+  }
   try {
     const out = execSync("where.exe node", { encoding: "utf8" });
     const line = out.split(/\r?\n/).find((l) => l.trim().length > 0);
     if (line) return line.trim();
   } catch (_) {}
   return "node";
+}
+
+function unpackedPath(filePath) {
+  return filePath.replace(/app\.asar([\\/])/, "app.asar.unpacked$1");
 }
 
 /**
@@ -31,7 +40,7 @@ function startTunBridge(opts) {
     /** @type {import('child_process').ChildProcess | null} */
     let childRef = null;
     const server = net.createServer();
-    const serviceJs = path.join(__dirname, "tun-service.js");
+    const serviceJs = unpackedPath(path.join(__dirname, "tun-service.js"));
 
     const fail = (err) => {
       if (settled) return;
@@ -55,7 +64,10 @@ function startTunBridge(opts) {
         server.address()
       ).port;
 
-      const child = spawn(findNodePath(), [serviceJs, String(cport)], {
+      const nodePath = findNodePath();
+      const env = Object.assign({}, process.env);
+      const child = spawn(nodePath, [serviceJs, String(cport)], {
+        env,
         stdio: ["ignore", "ignore", "pipe"],
         windowsHide: true,
       });

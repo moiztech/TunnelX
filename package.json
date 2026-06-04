@@ -35,16 +35,20 @@
       "!dist${/*}",
       "!**/*.md",
       "!.git${/*}",
-      "!node_modules/@xiaobaidadada${/*}",
       "!TunnelX by e11 labs.ico",
       "!TunnelX by e11 labs.png",
       "!LANBridge.pdf"
+    ],
+    "asarUnpack": [
+      "electron/tun-service.js",
+      "node_modules/@xiaobaidadada/node-tuntap2-wintun/**/*"
     ],
     "asar": true,
     "npmRebuild": false,
     "win": {
       "icon": "build/icon.ico",
       "signAndEditExecutable": false,
+      "requestedExecutionLevel": "requireAdministrator",
       "target": [
         {
           "target": "nsis",

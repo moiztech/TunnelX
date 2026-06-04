@@ -36,6 +36,8 @@ const LS_NAME = "lb_display_name";
 const LS_HOST = "lb_host_address";
 const LS_ROOM = "lb_room";
 const LS_MODE = "lb_mode";
+const DEFAULT_RELAY_HOST = "98.70.25.166";
+const DEFAULT_RELAY_WS = `ws://${DEFAULT_RELAY_HOST}:8787/ws`;
 
 const state = {
   mode: "host",
@@ -63,7 +65,7 @@ function loadPrefs() {
     const r = localStorage.getItem(LS_ROOM);
     const m = localStorage.getItem(LS_MODE);
     if (n) els.displayName.value = n;
-    if (h) els.hostAddress.value = h;
+    els.hostAddress.value = h || DEFAULT_RELAY_HOST;
     if (r) els.roomId.value = r;
     if (m === "join" || m === "host") setMode(m, false);
   } catch (_) {}
@@ -253,11 +255,11 @@ function buildInviteMessage() {
   const addr =
     state.hostShareIp ||
     els.displayHostAddress.textContent.trim() ||
-    "(your host address)";
+    DEFAULT_RELAY_HOST;
   return `Let's play together with TunnelX (E11 Labs)
 
 1) Open TunnelX and choose "I'm joining".
-2) Host address: ${addr}
+2) Server address: ${addr}
 3) Room name: ${room}
 4) Open the game and use LAN / local network multiplayer.
 
@@ -275,16 +277,22 @@ async function copyInvite() {
 }
 
 async function startBridgeSession(data) {
-  if (!window.lanbridgeSession) return;
+  if (!window.lanbridgeSession) return { ok: false, tun: false };
   try {
-    await window.lanbridgeSession.start({
+    return await window.lanbridgeSession.start({
       relayPort: data.relayUdpPort,
       serverHost: state.serverHost || parseWsHost(state.wsUrl),
       roomId: data.roomId,
       peerId: data.peerId,
       virtualIp: data.virtualIp,
     });
-  } catch (_) {}
+  } catch (e) {
+    return {
+      ok: false,
+      tun: false,
+      tunError: e && e.message ? e.message : String(e),
+    };
+  }
 }
 
 async function stopBridgeSession() {
@@ -308,16 +316,18 @@ async function applyWelcome(data) {
   els.displayVirtualIp.textContent = data.virtualIp || "—";
   setTunnelStatus("Ready — you’re linked to the lobby", "tunnel-ok");
 
+  setTunnelStatus("Starting LAN adapter...", "tunnel-warn");
+
   const isHost = data.role === "host";
   if (isHost) {
     els.sessionRoleHint.textContent =
-      "Send the invite below to your friends. They only need two things: your Host address and this room name.";
+      "Send the invite below to your friends. They only need the server address and this room name.";
     els.hostShareExplain.classList.remove("hidden");
     els.joinerHostExplain.classList.add("hidden");
     els.btnCopyInvite.classList.remove("hidden");
 
-    let ip = "";
-    if (window.lanbridge && window.lanbridge.getHostNetworkInfo) {
+    let ip = parseWsHost(state.wsUrl) || DEFAULT_RELAY_HOST;
+    if (!ip && window.lanbridge && window.lanbridge.getHostNetworkInfo) {
       try {
         const net = await window.lanbridge.getHostNetworkInfo();
         ip = net && net.primary ? net.primary : "";
@@ -360,7 +370,16 @@ async function applyWelcome(data) {
   els.roomId.disabled = true;
   if (state.lastSession) state.lastSession.attempts = 0;
   setStatus("In lobby — all good", "ok");
-  await startBridgeSession(data);
+  const bridge = await startBridgeSession(data);
+  if (bridge && bridge.tun) {
+    setTunnelStatus("LAN adapter running", "tunnel-ok");
+  } else {
+    setTunnelStatus("Lobby connected, LAN adapter not running", "tunnel-bad");
+    toast(
+      "Lobby is connected, but the LAN adapter did not start. Run TunnelX as Administrator and make sure WinTun is packaged.",
+      "error"
+    );
+  }
 }
 
 function friendlyServerError(msg) {
@@ -483,6 +502,12 @@ els.btnPrimary.addEventListener("click", async () => {
   clearReconnectTimer();
 
   if (state.mode === "host") {
+    const cloudWsUrl = DEFAULT_RELAY_WS;
+    state.joinHostAddressRaw = DEFAULT_RELAY_HOST;
+    state.lastSession = { mode: "create", room, name, attempts: 0, wsUrl: cloudWsUrl };
+    connect("create", room, name, cloudWsUrl);
+    return;
+
     if (window.lanbridgeHost) {
       const r = await window.lanbridgeHost.ensureServer();
       if (!r.ok) {
@@ -505,7 +530,8 @@ els.btnPrimary.addEventListener("click", async () => {
     state.lastSession = { mode: "create", room, name, attempts: 0, wsUrl };
     connect("create", room, name, wsUrl);
   } else {
-    const hostAddr = els.hostAddress.value.trim();
+    const hostAddr = els.hostAddress.value.trim() || DEFAULT_RELAY_HOST;
+    els.hostAddress.value = hostAddr;
     if (!hostAddr) {
       toast(
         "Paste or type the Host address your friend sent you (from their Copy invite).",

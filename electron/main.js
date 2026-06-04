@@ -19,7 +19,6 @@ let liveSession = null;
 function shouldUseTun() {
   return (
     process.platform === "win32" &&
-    !app.isPackaged &&
     process.env.LANBRIDGE_TUN !== "0"
   );
 }
